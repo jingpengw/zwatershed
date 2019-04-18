@@ -12,6 +12,16 @@ from cpython.object cimport PyObject
 from cython.operator cimport dereference as deref, preincrement as inc
 
 #-------------- interface methods --------------------------------------------------------------
+def zwatershed2D(np.ndarray[np.float32_t, ndim=4] affs, 
+                  T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
+                  T_dust=600, T_merge=0.5,
+    for i in range(len(T_threshes)):
+                  save_path=None):
+    def zwatershed(np.ndarray[np.float32_t, ndim=4] affs, 
+                  T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
+                  T_dust=600, T_merge=0.5,
+                  save_path=None):
+
 def zwatershed(np.ndarray[np.float32_t, ndim=4] affs, 
                   T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
                   T_dust=600, T_merge=0.5,
@@ -23,11 +33,11 @@ def zwatershed(np.ndarray[np.float32_t, ndim=4] affs,
     print "1. affinity threshold: ", affs_thres
 
     print "2. get initial seg"
-    map = zw_initial_cpp(dims[0], dims[1], dims[2], &affs[0, 0, 0, 0], affs_thres[0], affs_thres[1])
+    rg = zw_initial_cpp(dims[0], dims[1], dims[2], &affs[0, 0, 0, 0], affs_thres[0], affs_thres[1])
 
-    cdef np.ndarray[uint64_t, ndim=1] in_seg = np.array(map['seg'],dtype='uint64')
-    cdef np.ndarray[uint64_t, ndim=1] in_counts = np.array(map['counts'],dtype='uint64')
-    cdef np.ndarray[np.float32_t, ndim=2] in_rg = np.array(map['rg'], dtype='float32').reshape(-1, 3)
+    cdef np.ndarray[uint64_t, ndim=1] in_seg = np.array(rg['seg'],dtype='uint64')
+    cdef np.ndarray[uint64_t, ndim=1] in_counts = np.array(rg['counts'],dtype='uint64')
+    cdef np.ndarray[np.float32_t, ndim=2] in_rg = np.array(rg['rg'], dtype='float32').reshape(-1, 3)
 
     # get segs, stats
     T_threshes.sort()
@@ -37,13 +47,13 @@ def zwatershed(np.ndarray[np.float32_t, ndim=4] affs,
     for i in range(len(T_threshes)):
         print "3. do thres: ", T_threshes[i], T_dust
         if(len(in_rg) > 0):
-            map = merge_region(
+            rg = merge_region(
                 dims[0], dims[1], dims[2], &in_rg[0, 0],
                 in_rg.shape[0], &in_seg[0], &in_counts[0], 
                 len(in_counts), T_threshes[i], affs_thres[2], T_dust, T_merge)
-        in_seg = np.array(map['seg'], dtype='uint64')
-        in_rg = np.array(map['rg'], dtype='float32').reshape(-1, 3)
-        in_counts = np.array(map['counts'], dtype='uint64')
+        in_seg = np.array(rg['seg'], dtype='uint64')
+        in_rg = np.array(rg['rg'], dtype='float32').reshape(-1, 3)
+        in_counts = np.array(rg['counts'], dtype='uint64')
 
         seg = in_seg.reshape((dims[2], dims[1], dims[0])).transpose(2, 1, 0)
         if save_path is None:
@@ -71,15 +81,15 @@ def zw_initial(np.ndarray[np.float32_t, ndim=4] affs, affs_low, affs_high):
     # affs: z*y*x*3
     affs = np.asfortranarray(np.transpose(affs, (1, 2, 3, 0)))
     dims = affs.shape
-    map = zw_initial_cpp(dims[0], dims[1], dims[2], &affs[0, 0, 0, 0], float(affs_low), float(affs_high))
+    rg = zw_initial_cpp(dims[0], dims[1], dims[2], &affs[0, 0, 0, 0], float(affs_low), float(affs_high))
 
-    graph = np.array(map['rg'], dtype='float32')
+    graph = np.array(rg['rg'], dtype='float32')
     rgn_graph = graph.reshape(len(graph) / 3, 3)
     # for output: seg.shape=[z*y*x]
-    seg = np.array(map['seg'], dtype='uint64').reshape((dims[2], dims[1], dims[0])).transpose(2,1,0)
+    seg = np.array(rg['seg'], dtype='uint64').reshape((dims[2], dims[1], dims[0])).transpose(2,1,0)
 
     return {'rg': rgn_graph, 'seg': seg,
-            'counts': np.array(map['counts'], dtype='uint64')}
+            'counts': np.array(rg['counts'], dtype='uint64')}
 
 def zw_merge_region(np.ndarray[uint64_t, ndim=3] seg_init, np.ndarray[uint64_t, ndim=1] counts, 
                    np.ndarray[np.float32_t, ndim=2] rg, T_threshes, T_aff_merge=0.2, 
@@ -99,15 +109,15 @@ def zw_merge_region(np.ndarray[uint64_t, ndim=3] seg_init, np.ndarray[uint64_t, 
     for i in range(len(T_threshes)):
         print "3. do thres: ", T_threshes[i], T_dust
         if(len(rgn_graph) > 0):
-            map = merge_region(
+            rg = merge_region(
                 dims[0], dims[1], dims[2], &rgn_graph[0, 0],
                 rgn_graph.shape[0], &seg_in[0], &counts_out[0], 
                 counts_len, T_threshes[i], T_aff_merge, T_dust, T_merge)
             # for next iteration
-            seg_in = np.array(map['seg'], dtype='uint64')
-            counts_out = np.array(map['counts'], dtype='uint64')
+            seg_in = np.array(rg['seg'], dtype='uint64')
+            counts_out = np.array(rg['counts'], dtype='uint64')
             counts_len = len(counts_out)
-            graph = np.array(map['rg'], dtype='float32')
+            graph = np.array(rg['rg'], dtype='float32')
             rgn_graph = graph.reshape(len(graph) / 3, 3)
 
             seg = seg_in.reshape((dims[2], dims[1], dims[0])).transpose(2, 1, 0)
