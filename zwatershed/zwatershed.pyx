@@ -12,16 +12,6 @@ from cpython.object cimport PyObject
 from cython.operator cimport dereference as deref, preincrement as inc
 
 #-------------- interface methods --------------------------------------------------------------
-def zwatershed2D(np.ndarray[np.float32_t, ndim=4] affs, 
-                  T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
-                  T_dust=600, T_merge=0.5,
-    for i in range(len(T_threshes)):
-                  save_path=None):
-    def zwatershed(np.ndarray[np.float32_t, ndim=4] affs, 
-                  T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
-                  T_dust=600, T_merge=0.5,
-                  save_path=None):
-
 def zwatershed(np.ndarray[np.float32_t, ndim=4] affs, 
                   T_threshes, T_aff=[0.01,0.8,0.2], T_aff_relative=True, 
                   T_dust=600, T_merge=0.5,
