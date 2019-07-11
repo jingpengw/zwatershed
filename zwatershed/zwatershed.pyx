@@ -17,12 +17,14 @@ def zwatershed(np.ndarray[np.float32_t, ndim=4] affs,
                   T_dust=600, T_merge=0.5,
                   save_path=None):
     # aff stats
+    # our affinitymap is c,z,y,x, do not need transpose?
+    #affs = np.asfortranarray(affs)
     affs = np.asfortranarray(np.transpose(affs, (1, 2, 3, 0)))
     dims = affs.shape
     affs_thres = np.percentile(affs, [t*100 for t in T_aff]) if T_aff_relative else T_aff
-    print "1. affinity threshold: ", affs_thres
+    print('1. affinity threshold: ', affs_thres)
 
-    print "2. get initial seg"
+    print("2. get initial seg")
     rg = zw_initial_cpp(dims[0], dims[1], dims[2], &affs[0, 0, 0, 0], affs_thres[0], affs_thres[1])
 
     cdef np.ndarray[uint64_t, ndim=1] in_seg = np.array(rg['seg'],dtype='uint64')

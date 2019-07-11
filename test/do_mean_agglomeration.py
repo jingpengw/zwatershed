@@ -23,15 +23,6 @@ def writeh5(filename, datasetname, dtarray):
     fid.close()
  
 
-SIX_CONNECTED = np.array([[[False, False, False],
-                           [False, True, False],
-                           [False, False, False]],
-                          [[False, True, False],
-                           [True, True, True],
-                           [False, True, False]],
-                          [[False, False, False],
-                           [False, True, False],
-                           [False, False, False]]])
 if __name__ == "__main__":
     # originial order: czyx
     output_txt = sys.argv[1]
